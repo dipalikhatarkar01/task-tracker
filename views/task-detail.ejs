@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>  
+<head>  
+    <title>Task Details - TaskFlow Pro</title>  
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">  
+    <style>  
+        *{margin:0;padding:0;box-sizing:border-box;}  
+        body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:20px;color:#fff;}  
+        .container{max-width:800px;margin:0 auto;}  
+        .back-btn{position:fixed;top:20px;left:20px;background:rgba(255,255,255,0.2);color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:500;z-index:1000;}  
+        .task-detail{background:rgba(255,255,255,0.15);backdrop-filter:blur(20px);padding:40px;border-radius:20px;margin-top:60px;}  
+        .task-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;border-bottom:1px solid rgba(255,255,255,0.2);padding-bottom:20px;}  
+        .task-title{font-size:28px;font-weight:700;margin-bottom:10px;}  
+        .task-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;font-weight:600;}  
+        .priority-1{background:rgba(248,113,113,0.3);color:#f87171;}  
+        .priority-2{background:rgba(250,204,21,0.3);color:#facc15;}  
+        .priority-3{background:rgba(16,185,129,0.3);color:#10b981;}  
+        .task-meta{display:flex;gap:20px;font-size:14px;color:rgba(255,255,255,0.8);margin-bottom:20px;flex-wrap:wrap;}  
+        .form-group{margin-bottom:20px;}  
+        .form-label{display:block;margin-bottom:8px;font-weight:500;}  
+        .form-input{width:100%;padding:15px;border:none;border-radius:10px;background:rgba(255,255,255,0.2);color:#fff;font-size:16px;}  
+        .form-input::placeholder{color:rgba(255,255,255,0.7);}  
+        .btn-group{display:flex;gap:15px;margin-top:30px;}  
+        .btn{padding:15px 30px;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:16px;transition:all 0.3s;}  
+        .btn-primary{background:#10b981;color:white;}  
+        .btn-danger{background:#f87171;color:white;}  
+        .btn-secondary{background:rgba(255,255,255,0.2);color:white;}  
+        .status-toggle{display:flex;align-items:center;gap:15px;font-size:18px;margin-bottom:20px;cursor:pointer;}  
+        @media(max-width:768px){.task-header{flex-direction:column;gap:15px;text-align:center;}}
+    </style>  
+</head>  
+<body>  
+    <a href="/" class="back-btn">← Back to Dashboard</a>  
+    <div class="container">  
+        <div class="task-detail">  
+            <div class="task-header">  
+                <div>  
+                    <h1 class="task-title"><%= task.text %></h1>  
+                    <div class="task-badge priority-<%= task.priority %>">P<%= task.priority %> • <%= task.category %></div>  
+                </div>  
+                <div class="status-toggle" onclick="toggleStatus()">  
+                    <span style="font-size:24px;"><%= task.completed ? '✓' : '○' %></span>  
+                    <span style="font-weight:600;"><%= task.completed ? 'Completed' : 'Mark Complete' %></span>  
+                </div>  
+            </div>  
+
+            <form action="/edit/<%= task.id %>" method="POST">  
+                <div class="form-group">  
+                    <label class="form-label">Task Title</label>  
+                    <input type="text" name="task" value="<%= task.text %>" class="form-input" required>  
+                </div>  
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">  
+                    <div class="form-group">  
+                        <label class="form-label">Priority</label>  
+                        <select name="priority" class="form-input">  
+                            <option value="1" <%= task.priority == '1' ? 'selected' : '' %>>🔴 High</option>  
+                            <option value="2" <%= task.priority == '2' ? 'selected' : '' %>>🟡 Medium</option>  
+                            <option value="3" <%= task.priority == '3' ? 'selected' : '' %>>🟢 Low</option>  
+                        </select>  
+                    </div>  
+                    <div class="form-group">  
+                        <label class="form-label">Category</label>  
+                        <select name="category" class="form-input">  
+                            <% categories.forEach(cat => { %>  
+                                <option value="<%= cat %>" <%= task.category === cat ? 'selected' : '' %>><%= cat %></option>  
+                            <% }) %>  
+                        </select>  
+                    </div>  
+                </div>  
+
+                <div class="form-group">  
+                    <label class="form-label">Due Date</label>  
+                    <input type="date" name="dueDate" value="<%= task.dueDate ? task.dueDate.split('T')[0] : '' %>" class="form-input">  
+                </div>  
+
+                <div class="task-meta">  
+                    <span>Created: <%= new Date(task.createdAt).toLocaleDateString('en-IN') %></span>  
+                    <% if(task.completed) { %>  
+                        <span>Completed: <%= new Date().toLocaleDateString('en-IN') %></span>  
+                    <% } %>  
+                </div>  
+
+                <div class="btn-group">  
+                    <button type="submit" class="btn btn-primary">💾 Update Task</button>  
+                    <a href="/delete/<%= task.id %>" class="btn btn-danger" onclick="return confirm('Delete this task?')">🗑️ Delete</a>  
+                    <a href="/" class="btn btn-secondary">← Back</a>  
+                </div>  
+            </form>  
+        </div>  
+    </div>  
+</body>  
+</html>

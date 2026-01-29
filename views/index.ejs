@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>  
+<head>  
+    <title>TaskFlow Pro</title>  
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">  
+    <style>  
+        *{margin:0;padding:0;box-sizing:border-box;}  
+        body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e);min-height:100vh;color:#e2e8f0;}  
+        .container{max-width:1200px;margin:0 auto;padding:20px 20px 80px 20px;}  
+        
+        /* LOADING ANIMATION */
+        #loader{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.5s;}
+        #loader.fade-out{opacity:0;pointer-events:none;}
+        .spinner{width:60px;height:60px;border:4px solid rgba(255,255,255,0.1);border-top:4px solid #10b981;border-radius:50%;animation:spin 1s linear infinite;}
+        @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+        
+        .header{background:rgba(0,0,0,0.4);backdrop-filter:blur(20px);padding:40px;border-radius:20px;margin-bottom:30px;text-align:center;border:1px solid rgba(255,255,255,0.1);}  
+        .header h1{font-size:2.5em;font-weight:700;margin-bottom:10px;background:linear-gradient(135deg,#10b981,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}  
+        .header p{font-size:1.1em;opacity:0.9;margin-bottom:30px;}  
+        
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:40px;}  
+        .stat{background:rgba(0,0,0,0.6);padding:25px;border-radius:15px;border:1px solid rgba(255,255,255,0.1);text-align:center;transition:all 0.3s;cursor:pointer;}  
+        .stat:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,0.3);}  
+        .stat h3{font-size:2.5em;font-weight:700;margin-bottom:8px;}  
+        .stat.total h3{color:#60a5fa;}.stat.urgent h3{color:#f87171;}.stat.completed h3{color:#10b981;}.stat.overdue h3{color:#f87171;}  
+        .stat-label{font-size:0.95em;opacity:0.8;text-transform:uppercase;letter-spacing:1px;}  
+        
+        .quick-actions{display:flex;gap:15px;justify-content:center;margin-bottom:30px;flex-wrap:wrap;}  
+        .action-btn{padding:12px 24px;background:rgba(0,0,0,0.5);color:#e2e8f0;border:1px solid rgba(255,255,255,0.1);border-radius:10px;cursor:pointer;font-weight:500;transition:all 0.3s;font-family:'Inter',sans-serif;}  
+        .action-btn:hover{background:rgba(255,255,255,0.1);transform:translateY(-2px);}  
+        
+        .add-form{background:rgba(0,0,0,0.4);backdrop-filter:blur(20px);padding:30px;border-radius:20px;margin-bottom:30px;display:flex;flex-wrap:wrap;gap:15px;border:1px solid rgba(255,255,255,0.1);}  
+        .task-input{flex:1;min-width:250px;padding:15px;border:none;border-radius:10px;background:rgba(0,0,0,0.7);color:#e2e8f0;font-size:16px;border:1px solid rgba(255,255,255,0.1);}  
+        .task-input::placeholder{color:rgba(226,232,240,0.5);}  
+        
+        /* ✅ FIXED CATEGORY COLORS - BOX + OPTIONS */
+        .priority-select{padding:15px;border:none;border-radius:10px;background:rgba(0,0,0,0.7);color:#e2e8f0;border:1px solid rgba(255,255,255,0.1);}
+        .category-select{padding:15px;border:none;border-radius:10px;background:rgba(60,60,120,0.95);color:#ffffff;border:1px solid rgba(255,255,255,0.4);}
+        .category-select option{color:#000000 !important;background:#ffffff !important;}
+        .date-input{padding:15px;border:none;border-radius:10px;background:rgba(40,40,70,0.9);color:#f8fafc;border:1px solid rgba(255,255,255,0.2);}
+        
+        .add-btn{padding:15px 35px;background:linear-gradient(135deg,#10b981,#34d399);color:white;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:16px;transition:all 0.3s;}  
+        .add-btn:hover{transform:translateY(-2px);box-shadow:0 10px 20px rgba(16,185,129,0.4);}  
+
+        .filters{display:flex;gap:15px;flex-wrap:wrap;margin-bottom:40px;justify-content:center;}  
+        .filter-select,.search-input{padding:14px;border:none;border-radius:10px;background:rgba(0,0,0,0.7);color:#e2e8f0;border:1px solid rgba(255,255,255,0.1);font-size:14px;}  
+        .search-input{width:280px;}  
+        .search-input::placeholder{color:rgba(226,232,240,0.5);}  
+
+        .tasks{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:25px;}  
+        .task-card{background:rgba(0,0,0,0.5);backdrop-filter:blur(20px);padding:30px;border-radius:20px;border-left:6px solid #10b981;transition:all 0.3s;cursor:pointer;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.08);}  
+        .task-card.priority-1{border-left-color:#f87171;}  
+        .task-card.priority-2{border-left-color:#facc15;}  
+        .task-card.priority-3{border-left-color:#10b981;}  
+        .task-card:hover{transform:translateY(-8px);box-shadow:0 25px 50px rgba(0,0,0,0.4);border-color:rgba(255,255,255,0.2);}  
+        .task-card.completed{opacity:0.7;}  
+        .task-card.completed::after{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#10b981,#34d399);}  
+        .task-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px;}  
+        .task-title{font-size:20px;font-weight:600;margin-bottom:8px;line-height:1.4;color:#f8fafc;}  
+        .task-meta{display:flex;flex-direction:column;gap:4px;font-size:14px;color:rgba(226,232,240,0.8);}  
+        .task-meta span{padding:4px 8px;background:rgba(255,255,255,0.1);border-radius:6px;font-size:13px;}  
+        .toggle-btn{background:rgba(16,185,129,0.2);color:#10b981;border:2px solid #10b981;border-radius:50%;width:42px;height:42px;cursor:pointer;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all 0.3s;}  
+        .toggle-btn.completed{background:#10b981;color:white;}  
+        .toggle-btn:hover{transform:scale(1.1);}  
+
+        .empty-state{text-align:center;padding:100px 40px;color:rgba(226,232,240,0.6);grid-column:1/-1;}  
+        .empty-state h2{font-size:2.5em;margin-bottom:20px;}  
+        .empty-state p{font-size:1.2em;margin-bottom:40px;}  
+
+        /* TOAST NOTIFICATION */
+        #toast{position:fixed;bottom:90px;right:30px;background:#10b981;color:white;padding:15px 20px;border-radius:10px;font-weight:600;transform:translateX(400px);transition:all 0.3s;z-index:1000;display:none;}
+        
+        /* FAB BUTTON */
+        .fab{position:fixed;bottom:30px;right:30px;width:60px;height:60px;background:linear-gradient(135deg,#10b981,#34d399);color:white;border:none;border-radius:50%;font-size:24px;cursor:pointer;box-shadow:0 10px 30px rgba(16,185,129,0.4);transition:all 0.3s;z-index:100;}
+        .fab:hover{transform:scale(1.1) rotate(90deg);box-shadow:0 15px 40px rgba(16,185,129,0.6);}
+
+        /* ✅ PROFESSIONAL FOOTER */
+        .footer{background:rgba(0,0,0,0.6);backdrop-filter:blur(20px);padding:30px 0;border-top:1px solid rgba(255,255,255,0.1);margin-top:60px;}
+        .footer-content{max-width:1200px;margin:0 auto;padding:0 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;}
+        .footer-left h3{font-size:1.4em;font-weight:600;color:#60a5fa;margin-bottom:8px;}
+        .footer-left p{opacity:0.8;font-size:0.95em;}
+        .footer-right{display:flex;gap:15px;}
+        .footer-link{color:#e2e8f0;text-decoration:none;font-weight:500;padding:8px 16px;border-radius:8px;transition:all 0.3s;border:1px solid transparent;}
+        .footer-link:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.2);transform:translateY(-2px);}
+        
+        @media(max-width:768px){
+            .stats-grid{grid-template-columns:repeat(2,1fr);gap:15px;}
+            .add-form{flex-direction:column;}
+            .filters{flex-direction:column;align-items:stretch;}
+            .footer-content{flex-direction:column;text-align:center;gap:15px;}
+            .container{padding-bottom:120px;}
+        }
+    </style>  
+</head>  
+<body>  
+    <!-- LOADING SCREEN -->
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">  
+        <div class="header">  
+            <h1>🚀 TaskFlow Pro</h1>  
+            <p>Advanced Task & Project Management Dashboard</p>  
+            <div class="stats-grid">  
+                <div class="stat total" title="Click to view all tasks">  
+                    <h3><%= stats.total %></h3>  
+                    <div class="stat-label">Total Tasks</div>  
+                </div>  
+                <div class="stat urgent" title="High priority tasks">  
+                    <h3><%= stats.urgent %></h3>  
+                    <div class="stat-label">High Priority</div>  
+                </div>  
+                <div class="stat completed" title="Completed tasks">  
+                    <h3><%= stats.completed %></h3>  
+                    <div class="stat-label">Completed</div>  
+                </div>  
+                <div class="stat overdue" title="Overdue tasks">  
+                    <h3><%= stats.overdue %></h3>  
+                    <div class="stat-label">Overdue</div>  
+                </div>  
+            </div>  
+        </div>  
+
+        <div class="quick-actions">  
+            <button class="action-btn" onclick="showToast('📊 Reports coming soon!')">📊 Reports</button>  
+            <button class="action-btn" onclick="showToast('👥 Team features coming soon!')">👥 Team</button>  
+            <button class="action-btn" onclick="showToast('📅 Calendar view coming soon!')">📅 Calendar</button>  
+        </div>
+
+        <form action="/add" method="POST" class="add-form">  
+            <input name="task" placeholder="💡 Add new task (e.g., Complete React project)..." required class="task-input">  
+            <select name="priority" class="priority-select" required>  
+                <option value="1">🔴 High Priority</option>  
+                <option value="2">🟡 Medium</option>  
+                <option value="3">🟢 Low</option>  
+            </select>  
+            <select name="category" class="category-select">  
+                <% categories.slice(1).forEach(cat => { %>  
+                    <option value="<%= cat %>"><%= cat %></option>  
+                <% }) %>  
+            </select>  
+            <input type="date" name="dueDate" class="date-input">  
+            <button type="submit" class="add-btn">➕ Create Task</button>  
+        </form>  
+
+        <div class="filters">  
+            <input type="text" class="search-input" id="search" placeholder="🔍 Search tasks, projects..." value="<%= search %>">  
+            <form style="display:inline;" method="GET">  
+                <select name="category" onchange="this.form.submit()" class="filter-select">  
+                    <% categories.forEach(cat => { %>  
+                        <option value="<%= cat %>" <%= categoryFilter === cat ? 'selected' : '' %>><%= cat %></option>  
+                    <% }) %>  
+                </select>  
+                <select name="priority" onchange="this.form.submit()" class="filter-select">  
+                    <option value="All" <%= priorityFilter === 'All' ? 'selected' : '' %>>All Priority</option>  
+                    <option value="1" <%= priorityFilter === '1' ? 'selected' : '' %>>🔴 High</option>  
+                    <option value="2" <%= priorityFilter === '2' ? 'selected' : '' %>>🟡 Medium</option>  
+                    <option value="3" <%= priorityFilter === '3' ? 'selected' : '' %>>🟢 Low</option>  
+                </select>  
+            </form>  
+        </div>
+
+        <div class="tasks">  
+            <% if(tasks.length==0){ %>  
+                <div class="empty-state">  
+                    <h2>📋 No tasks yet</h2>  
+                    <p>Your workspace is clean and ready. Add your first task to get started!</p>  
+                    <div style="font-size:1.5em;margin-top:20px;">🎯 What would you like to accomplish today?</div>  
+                </div>  
+            <% } else { %>  
+                <% tasks.forEach(function(task){ %>  
+                    <a href="/task/<%=task.id%>" style="text-decoration:none;color:inherit;">  
+                        <div class="task-card priority-<%=task.priority%> <%= task.completed ? 'completed' : '' %>">  
+                            <div class="task-header">  
+                                <div style="flex:1;">  
+                                    <div class="task-title"><%= task.text %></div>  
+                                    <div class="task-meta">  
+                                        <span><%= task.category %></span>  
+                                        <span>P<%= task.priority %></span>  
+                                        <% if(task.dueDate) { %><span>Due <%= new Date(task.dueDate).toLocaleDateString('en-IN') %></span><% } %>  
+                                    </div>  
+                                </div>  
+                                <form action="/toggle/<%=task.id%>" method="POST" style="display:inline;">  
+                                    <button type="submit" class="toggle-btn" title="<%= task.completed ? 'Mark Incomplete' : 'Mark Complete' %>">  
+                                        <%= task.completed ? '✓' : '○' %>  
+                                    </button>  
+                                </form>  
+                            </div>  
+                        </div>  
+                    </a>  
+                <% }) %>  
+            <% } %>  
+        </div>  
+
+        <!-- FAB BUTTON -->
+        <button class="fab" onclick="document.querySelector('.task-input').focus();showToast('✏️ Quick add ready! Press Enter')" title="Quick Add (Enter)">➕</button>
+
+        <!-- PROFESSIONAL FOOTER -->
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <h3>🚀 TaskFlow Pro</h3>
+                    <p>Advanced task management for modern teams | Built with ❤️ for productivity</p>
+                </div>
+                <div class="footer-right">
+                    <a href="#" class="footer-link" onclick="showToast('📊 Analytics')">Analytics</a>
+                    <a href="#" class="footer-link" onclick="showToast('⚙️ Settings')">Settings</a>
+                    <a href="#" class="footer-link" onclick="showToast('❓ Help')">Help</a>
+                    <a href="#" class="footer-link" onclick="showToast('💾 Export')">Export</a>
+                </div>
+            </div>
+        </div>
+    </div>  
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast"></div>
+
+    <script>  
+        // LOADING ANIMATION
+        window.addEventListener('load', () => {
+            setTimeout(() => document.getElementById('loader').classList.add('fade-out'), 500);
+        });
+
+        // TOAST FUNCTION
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            toast.style.transform = 'translateX(0)';
+            setTimeout(() => {
+                toast.style.transform = 'translateX(400px)';
+                setTimeout(() => toast.style.display = 'none', 300);
+            }, 3000);
+        }
+
+        // AUTO TOAST ON ADD
+        if(window.location.search.includes('added')) {
+            showToast('✅ Task added successfully!');
+        }
+
+        // KEYBOARD SHORTCUTS
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter' && document.querySelector('.task-input:focus')) {
+                e.preventDefault();
+                document.querySelector('.add-form').submit();
+                return;
+            }
+            if(e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('search').focus();
+                showToast('🔍 Search focused!');
+            }
+            if(e.key === 'Escape') {
+                document.getElementById('search').value = '';
+                const params = new URLSearchParams(window.location.search);
+                params.delete('search');
+                window.location.search = params.toString();
+            }
+        });
+
+        // SEARCH FUNCTIONALITY
+        document.getElementById('search').addEventListener('input', function(e) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('search', e.target.value);
+            window.location.search = params.toString();
+        });
+
+        // STATS CLICK EVENTS
+        document.querySelectorAll('.stat').forEach(stat => {
+            stat.addEventListener('click', () => {
+                const label = stat.querySelector('.stat-label').textContent;
+                showToast(`📊 Viewing ${label.toLowerCase()}...`);
+            });
+        });
+    </script>
+</body>  
+</html>
