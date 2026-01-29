@@ -1,97 +1,126 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
-const PORT = 3000;
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-app.use(express.static('public'));
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
-app.set('views', './views');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static('public'));
 
-// ✅ EMPTY TASKS ARRAY - ZERO ON START
-let tasks = []; 
+// Sample data file
+const DATA_FILE = path.join(__dirname, 'data.json');
 
-let categories = ['All', 'Study', 'Projects', 'Coding', 'Personal', 'Work'];
+// Initialize data
+const initData = () => {
+    if (!fs.existsSync(DATA_FILE)) {
+        fs.writeFileSync(DATA_FILE, JSON.stringify({
+            tasks: [],
+            categories: ['All', 'Coding', 'Study', 'Project', 'Meeting', 'Personal']
+        }, null, 2));
+    }
+};
 
+// Load data
+const loadData = () => {
+    initData();
+    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+};
+
+// Save data
+const saveData = (data) => {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+};
+
+// Routes
 app.get('/', (req, res) => {
-  const search = req.query.search || '';
-  const categoryFilter = req.query.category || 'All';
-  const priorityFilter = req.query.priority || 'All';
-  
-  let filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.text.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === 'All' || task.category === categoryFilter;
-    const matchesPriority = priorityFilter === 'All' || task.priority === priorityFilter;
-    return matchesSearch && matchesCategory && matchesPriority;
-  });
-
-  res.render('index', { 
-    tasks: filteredTasks, 
-    categories,
-    search,
-    categoryFilter,
-    priorityFilter,
-    stats: calculateStats(filteredTasks)
-  });
-});
-
-// Baki routes same...
-app.post('/add', (req, res) => {
-  const { task, priority, category, dueDate } = req.body;
-  tasks.unshift({
-    id: uuidv4(),
-    text: task,
-    priority,
-    category: category || 'Personal',
-    dueDate: dueDate || '',
-    completed: false,
-    createdAt: new Date()
-  });
-  res.redirect('/');
-});
-
-app.post('/delete/:id', (req, res) => {
-  tasks = tasks.filter(task => task.id !== req.params.id);
-  res.redirect('/');
-});
-
-app.post('/toggle/:id', (req, res) => {
-  const task = tasks.find(t => t.id === req.params.id);
-  if (task) task.completed = !task.completed;
-  res.redirect('/');
+    const data = loadData();
+    let { search = '', category = 'All', priority = 'All' } = req.query;
+    
+    let tasks = data.tasks;
+    
+    // Search filter
+    if (search) {
+        tasks = tasks.filter(task => 
+            task.text.toLowerCase().includes(search.toLowerCase()) ||
+            task.category.toLowerCase().includes(search.toLowerCase())
+        );
+    }
+    
+    // Category filter
+    if (category !== 'All') {
+        tasks = tasks.filter(task => task.category === category);
+    }
+    
+    // Priority filter
+    if (priority !== 'All') {
+        tasks = tasks.filter(task => task.priority == priority);
+    }
+    
+    // Stats
+    const stats = {
+        total: data.tasks.length,
+        urgent: data.tasks.filter(t => t.priority == 1).length,
+        completed: data.tasks.filter(t => t.completed).length,
+        overdue: data.tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < new Date()).length
+    };
+    
+    res.render('index', { 
+        tasks, 
+        categories: data.categories, 
+        stats, 
+        search, 
+        categoryFilter: category, 
+        priorityFilter: priority 
+    });
 });
 
 app.get('/task/:id', (req, res) => {
-  const task = tasks.find(t => t.id === req.params.id);
-  if (!task) return res.redirect('/');
-  res.render('task-detail', { task, categories });
+    const data = loadData();
+    const task = data.tasks.find(t => t.id == req.params.id);
+    res.render('task', { task });
 });
 
-app.post('/edit/:id', (req, res) => {
-  const task = tasks.find(t => t.id === req.params.id);
-  if (task) {
-    task.text = req.body.task;
-    task.priority = req.body.priority;
-    task.category = req.body.category;
-    task.dueDate = req.body.dueDate;
-  }
-  res.redirect(`/task/${req.params.id}`);
+app.post('/add', (req, res) => {
+    const data = loadData();
+    const newTask = {
+        id: Date.now().toString(),
+        text: req.body.task,
+        priority: parseInt(req.body.priority),
+        category: req.body.category || 'Personal',
+        dueDate: req.body.dueDate || null,
+        completed: false,
+        createdAt: new Date().toISOString()
+    };
+    data.tasks.unshift(newTask);
+    saveData(data);
+    res.redirect(`/added`);
 });
 
-function calculateStats(tasks) {
-  const total = tasks.length;
-  const urgent = tasks.filter(t => t.priority === '1').length;
-  const completed = tasks.filter(t => t.completed).length;
-  const overdue = tasks.filter(t => 
-    t.dueDate && new Date(t.dueDate) < new Date() && !t.completed
-  ).length;
-  return { total, urgent, completed, overdue };
-}
-
-app.listen(PORT, () => {
-  console.log(`🚀 TaskFlow Pro running on http://localhost:${PORT}`);
+app.post('/toggle/:id', (req, res) => {
+    const data = loadData();
+    const task = data.tasks.find(t => t.id == req.params.id);
+    if (task) {
+        task.completed = !task.completed;
+        saveData(data);
+    }
+    res.redirect('back');
 });
+
+app.delete('/delete/:id', (req, res) => {
+    const data = loadData();
+    data.tasks = data.tasks.filter(t => t.id != req.params.id);
+    saveData(data);
+    res.json({ success: true });
+});
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).render('404');
+});
+
+// Vercel export (CRITICAL for deployment)
+module.exports = app;
